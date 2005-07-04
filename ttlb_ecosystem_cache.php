@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: TTLB Ecosystem Cache
-Version: 1.4
+Version: 1.6
 Plugin URI: http://blog.slaven.net.au/archives/2005/02/24/ttlb-ecosystem-cache/
 Description: This is to replace the javascript tag that the <a href="http://www.truthlaidbear.com/ecosystem.php">TTLB Ecosystem</a> currently provides to display your sites current status in the Ecosystem.  It caches the results every 24 hours so as to reduce load times.
 Author: Glenn Slaven
@@ -17,9 +17,10 @@ General Public License for more details.
 */
 
 DEFINE(TLB_URL, 'http://www.truthlaidbear.com/MyDetails.php?style=javascript&url=');
-DEFINE(TLB_CACHE_LOC, dirname(dirname(__FILE__)).'/tlbstatus.php');
+define(TTLB_CACHE_FOLDER, dirname(dirname(__FILE__)));
+DEFINE(TTLB_CACHE_LOC, TTLB_CACHE_FOLDER.'/ttlbstatus.php');
 
-function ttlb_ecosystem_details($my_blog = '', $force_update = false) {
+function ttlb_ecosystem_details($my_blog = '') {
 	if (file_exists(TLB_CACHE_LOC)) {
 		$delta = time() - filemtime(TLB_CACHE_LOC);
 		$update = ($delta >=  (24*60*60));
@@ -27,24 +28,28 @@ function ttlb_ecosystem_details($my_blog = '', $force_update = false) {
 		$update = true;
 	}
 
-	if ($update || $force_update) {
+	if ($update || $_GET['force_refresh_ttlb']) {
 		if (! $my_blog && function_exists('get_settings')) {
 			$my_blog = get_settings("siteurl");
 		}
-		if ($handle = @fopen(TLB_URL.$my_blog, "r")) {        
-    		while (!feof($handle)) {
-    		   $buffer .= fgets($handle, 4096);
-    		}
-    		fclose($handle);
-        
-    		//Check for no data
-    		if (strlen($buffer) > 10) {
-    		  $write_file = fopen(TLB_CACHE_LOC, "w");
-    	   	  fwrite($write_file, '<script language="javascript" type="text/javascript">'.$buffer.'</script>');
-    		  fclose($write_file);
-            }
+
+		//Use the Snoopy net client to pull the asin out of the allconsuming page
+		$snoopy_url = TLB_URL.$my_blog;
+		$client = new Snoopy();		
+		$client->read_timeout = 3;
+		$client->use_gzip = true;
+		($_GET['dieloud'] ? $client->fetch($snoopy_url) : @$client->fetch($snoopy_url));		
+		if ($client->results) {
+			if (is_writable(TTLB_CACHE_LOC) || (!file_exists(TTLB_CACHE_LOC) && is_writable(TTLB_CACHE_FOLDER))) {			    
+				$write_file = @fopen(TTLB_CACHE_LOC, "w");			
+				$buffer = $client->results;
+				fwrite($write_file, '<script language="javascript" type="text/javascript">'.$buffer.'</script>');
+				fclose($write_file);		      
+			} elseif ($_GET['dieloud']) {
+				print "<span style=\"color:#FF0000;\"><strong>TTLB Ecosystem Plugin Error</strong><br />The cache file location either doesn't exist or the web server doesn't have permission to write to it.</span>\n";
+			}
         }
 	}
-	require(TLB_CACHE_LOC);
+	include(TTLB_CACHE_LOC);
 }
 ?>
