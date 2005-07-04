@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: TTLB Ecosystem Cache
-Version: 1.4
+Version: 1.6
 Plugin URI: http://blog.slaven.net.au/archives/2005/02/24/ttlb-ecosystem-cache/
 Description: This is to replace the javascript tag that the <a href="http://www.truthlaidbear.com/ecosystem.php">TTLB Ecosystem</a> currently provides to display your sites current status in the Ecosystem.  It caches the results every 24 hours so as to reduce load times.
 Author: Glenn Slaven
